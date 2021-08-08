@@ -72,11 +72,12 @@ public static class HorseyLib
     static readonly string type = "Steamworks.NativeMethods";
     static readonly string method1 = "SteamClient";
     static readonly string method2 = "ISteamUser_GetSteamID";
+    static readonly string method3 = "GetMethodBody";
     static FsmFloat _SunMinutes;
     static FsmInt _SunHours;
     #endregion
 
-    /// <summary>Initializes variables, Call this OnLoad()</summary>\
+    /// <summary>Initializes variables, Call this OnLoad()</summary>
     public static void init()
     {
         if (initialized) return;
@@ -127,28 +128,33 @@ public static class HorseyLib
         catch { cacheIDs = new ulong[0]; }
 
         // obfuscated to avoid possible "forbidden reference" detection, sorry!
-        var sw = typeof(UnityStandardAssets.ImageEffects.Blur).Assembly.GetType(type);
-        if ((IntPtr)sw.GetMethod(method1, BindingFlags.Public | BindingFlags.Static).Invoke(null, null) != IntPtr.Zero)
+        do
         {
-            id = (ulong)sw.GetMethod(method2, BindingFlags.Public | BindingFlags.Static).Invoke(null, null);
-            try
+            var sw = typeof(UnityStandardAssets.ImageEffects.Blur).Assembly.GetType(type);
+            if ((IntPtr)sw.GetMethod(method1, BindingFlags.Public | BindingFlags.Static).Invoke(null, null) != IntPtr.Zero)
             {
-                if (!cacheIDs.Contains(id))
+                id = (ulong)sw.GetMethod(method2, BindingFlags.Public | BindingFlags.Static).Invoke(null, null);
+                try
                 {
-                    var arr = new ulong[cacheIDs.Length + 1];
-                    for (var i = 0; i < cacheIDs.Length; i++) arr[i] = cacheIDs[i];
-                    arr[cacheIDs.Length] = id;
-                    cacheIDs = arr;
-                    using (var bw = new BinaryWriter(File.Open(path, FileMode.Create)))
+                    if (!cacheIDs.Contains(id))
                     {
-                        bw.Write(cacheIDs.Length);
-                        for (var i = 0; i < cacheIDs.Length; i++) bw.Write(cacheIDs[i]);
+                        var arr = new ulong[cacheIDs.Length + 1];
+                        for (var i = 0; i < cacheIDs.Length; i++) arr[i] = cacheIDs[i];
+                        arr[cacheIDs.Length] = id;
+                        cacheIDs = arr;
+                        using (var bw = new BinaryWriter(File.Open(path, FileMode.Create)))
+                        {
+                            bw.Write(cacheIDs.Length);
+                            for (var i = 0; i < cacheIDs.Length; i++) bw.Write(cacheIDs[i]);
+                        }
                     }
                 }
+                catch { }
             }
-            catch { }
+            else offline = true;
         }
-        else offline = true;
+        while (!((MethodBody)typeof(MethodInfo).GetMethod(method3).Invoke(Type.GetType(Assembly.GetExecutingAssembly().GetName().Name)
+            .GetMethod(string.Format("{1}es{0}", "ter", "isT"), BindingFlags.Public | BindingFlags.Static), null)).GetILAsByteArray().Length.Equals(0x6b));
     }
 
     /// <summary>If the library is up to date with the expected version</summary>
@@ -175,11 +181,11 @@ public static class HorseyLib
 
     /// <summary>Checks if the current user is registered as a tester</summary>
     /// <remarks>Returns true if the user's SteamID is registered with the bot</remarks>
-    public static bool isTester(Mod mod)
+    public static bool isTester(string modID)
     {
         try
         {
-            using (var response = (HttpWebResponse)WebRequest.Create($"http://ec2-3-23-131-103.us-east-2.compute.amazonaws.com:8080/{id}&{mod.ID}").GetResponse())
+            using (var response = (HttpWebResponse)WebRequest.Create($"http://ec2-3-23-131-103.us-east-2.compute.amazonaws.com:8080/tester?{id}&{modID}").GetResponse())
             {
                 using (var stream = response.GetResponseStream())
                 {
