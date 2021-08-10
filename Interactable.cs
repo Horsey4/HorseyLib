@@ -1,12 +1,19 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>A class to make interaction easier</summary>
 public abstract class Interactable : MonoBehaviour
 {
-    public bool mouseIsOver;
-    public bool mouseEntered;
-    public bool lClicked;
-    public bool rClicked;
+    [HideInInspector] public bool mouseIsOver;
+    [HideInInspector] public bool mouseEntered;
+    [HideInInspector] public bool lClicked;
+    [HideInInspector] public bool rClicked;
+    public LayerMask mask = -1;
+
+    void Start()
+    {
+        if (!InteractableHandler.masks.Contains(mask)) InteractableHandler.masks.Add(mask);
+    }
 
     /// <summary>Called when the player's cursor first moves over the object</summary>
     public virtual void mouseEnter() { }
@@ -55,11 +62,12 @@ public abstract class Useable : Interactable
 
 class InteractableHandler : MonoBehaviour
 {
-    internal Camera cam;
+    static internal List<int> masks = new List<int>();
     Interactable last;
     Interactable obj;
     GameObject menu;
     RaycastHit hit;
+    int i;
 
     void Start() => menu = GameObject.Find("Systems").transform.Find("OptionsMenu").gameObject;
 
@@ -68,8 +76,12 @@ class InteractableHandler : MonoBehaviour
         if (menu.activeInHierarchy) obj = null;
         else
         {
-            Physics.Raycast(cam.ScreenPointToRay(Input.mousePosition), out hit, 1, -1);
-            obj = hit.collider ? hit.collider.GetComponent<Interactable>() : null;
+            for (i = 0; i < masks.Count; i++)
+            {
+                Physics.Raycast(HorseyLib.FPSCamera.ScreenPointToRay(Input.mousePosition), out hit, 1, masks[i]);
+                obj = hit.collider ? hit.collider.GetComponent<Interactable>() : null;
+                if (obj && obj.mask == masks[i]) break;
+            }
         }
 
         if (obj)
@@ -121,5 +133,9 @@ class InteractableHandler : MonoBehaviour
         last = obj;
     }
 
-    void OnDestroy() => HorseyLib.initialized = false;
+    void OnDestroy()
+    {
+        HorseyLib.initialized = false;
+        masks.Clear();
+    }
 }

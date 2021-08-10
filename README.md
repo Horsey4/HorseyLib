@@ -72,6 +72,7 @@ checkVersion | bool | `int expectedVersion` | If the library is up to date with 
 isUser | bool | `bool offlineOK, checkCache, params ulong[] steamIDs` | Advanced steamID check to avoid bypasses
 isUser | bool | `bool offlineOK, params ulong[] steamIDs` | Checks cache
 isUser | bool | `params ulong[] steamIDs` | Checks cache but not offline
+isPirate | bool | None | Returns true if the user has never launched the game with steam	
 isTester | bool | `Mod mod` | Returns true if the user's SteamID is registered with the bot
 
 <br>
@@ -112,6 +113,11 @@ class InteractableExample : Interactable
 	public override void mouseExit() => HorseyLib.GUIuse.value = false;
 }
 ```
+
+## Subclasses
+Name | Functionality
+-|-
+Useable | Sets GUIuse to true when the mouse is over
 
 <br>
 

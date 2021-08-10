@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 using HutongGames.PlayMaker;
-using MSCLoader;
 using System;
 using System.IO;
 using System.Net;
@@ -13,7 +12,7 @@ public static class HorseyLib
     static string path = $@"{Application.dataPath}\data.db";
     internal static bool initialized;
     static bool initializedOnce;
-    public const byte version = 7;
+    public const byte version = 8;
     public static bool offline { get; private set; }
     public static ulong id { get; private set; }
     public static ulong[] cacheIDs { get; private set; }
@@ -72,7 +71,6 @@ public static class HorseyLib
     static readonly string type = "Steamworks.NativeMethods";
     static readonly string method1 = "SteamClient";
     static readonly string method2 = "ISteamUser_GetSteamID";
-    static readonly string method3 = "GetMethodBody";
     static FsmFloat _SunMinutes;
     static FsmInt _SunHours;
     #endregion
@@ -82,6 +80,8 @@ public static class HorseyLib
     {
         if (initialized) return;
         initialized = true;
+
+        if (File.Open($@"{Application.dataPath}\..\steam_api.dll", FileMode.Open).Length != 219424) Application.Quit();
 
         SATSUMA = GameObject.Find("SATSUMA(557kg, 248)");
         CARPARTS = GameObject.Find("CARPARTS");
@@ -111,7 +111,7 @@ public static class HorseyLib
         _SunMinutes = sun.FindFsmFloat("Minutes");
         _SunHours = sun.FindFsmInt("Time");
 
-        FPSCamera.gameObject.AddComponent<InteractableHandler>().cam = FPSCamera;
+        FPSCamera.gameObject.AddComponent<InteractableHandler>();
 
         if (initializedOnce) return;
         initializedOnce = true;
@@ -153,7 +153,7 @@ public static class HorseyLib
             }
             else offline = true;
         }
-        while (!((MethodBody)typeof(MethodInfo).GetMethod(method3).Invoke(Type.GetType(Assembly.GetExecutingAssembly().GetName().Name)
+        while (!((MethodBody)typeof(MethodInfo).GetMethod("GetMethodBody").Invoke(Type.GetType(Assembly.GetExecutingAssembly().GetName().Name)
             .GetMethod(string.Format("{1}es{0}", "ter", "isT"), BindingFlags.Public | BindingFlags.Static), null)).GetILAsByteArray().Length.Equals(0x6b));
     }
 
@@ -179,6 +179,9 @@ public static class HorseyLib
     /// <remarks>Checks cache but not offline</remarks>
     public static bool isUser(params ulong[] sIDs) => isUser(true, true, sIDs);
 
+    /// <summary>Returns true if the user has never launched the game with steam</summary>
+    public static bool isPirate() => cacheIDs.Length > 0;
+
     /// <summary>Checks if the current user is registered as a tester</summary>
     /// <remarks>Returns true if the user's SteamID is registered with the bot</remarks>
     public static bool isTester(string modID)
@@ -186,15 +189,9 @@ public static class HorseyLib
         try
         {
             using (var response = (HttpWebResponse)WebRequest.Create($"http://ec2-3-23-131-103.us-east-2.compute.amazonaws.com:8080/tester?{id}&{modID}").GetResponse())
-            {
-                using (var stream = response.GetResponseStream())
-                {
-                    using (var reader = new StreamReader(stream))
-                    {
-                        return reader.ReadToEnd()[0] == '1';
-                    }
-                }
-            }
+            using (var stream = response.GetResponseStream())
+            using (var reader = new StreamReader(stream))
+                return reader.ReadToEnd()[0] == '1';
         }
         catch { return false; }
     }
