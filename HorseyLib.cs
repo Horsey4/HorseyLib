@@ -1,21 +1,12 @@
 ﻿using UnityEngine;
 using HutongGames.PlayMaker;
-using System;
-using System.IO;
-using System.Net;
-using System.Linq;
-using System.Reflection;
 
 public static class HorseyLib
 {
     #region variables
-    static string path = $@"{Application.dataPath}\data.db";
     internal static bool initialized;
-    static bool initializedOnce;
-    public const byte version = 8;
-    public static bool offline { get; private set; }
-    public static ulong id { get; private set; }
-    public static ulong[] cacheIDs { get; private set; }
+    public const byte majorVersion = 2;
+    public const byte minorVersion = 0;
     public static GameObject SATSUMA { get; private set; }
     public static GameObject CARPARTS { get; private set; }
     public static GameObject PLAYER { get; private set; }
@@ -37,10 +28,11 @@ public static class HorseyLib
     public static GameObject JAIL { get; private set; }
     public static GameObject GUI { get; private set; }
     public static GameObject Database { get; private set; }
-    public static Drivetrain[] vehicles { get; private set; }
     public static Camera FPSCamera { get; private set; }
-    public static float ClockMinutes => _SunMinutes.Value % 60;
-    public static int ClockHours => (_SunHours.Value + (_SunMinutes.Value > 60 ? 1 : 0)) % 24;
+    public static Drivetrain[] vehicles { get; private set; }
+    public static FsmBool RatchetSwitch { get; private set; }
+    public static float clockMinutes => _sunMinutes.Value % 60;
+    public static int clockHours => (_sunHours.Value + (_sunMinutes.Value > 60 ? 1 : 0)) % 24;
     public static readonly FsmFloat Thirst = FsmVariables.GlobalVariables.FindFsmFloat("PlayerThirst");
     public static readonly FsmFloat Hunger = FsmVariables.GlobalVariables.FindFsmFloat("PlayerHunger");
     public static readonly FsmFloat Stress = FsmVariables.GlobalVariables.FindFsmFloat("PlayerStress");
@@ -48,6 +40,8 @@ public static class HorseyLib
     public static readonly FsmFloat Fatigue = FsmVariables.GlobalVariables.FindFsmFloat("PlayerFatigue");
     public static readonly FsmFloat Dirtiness = FsmVariables.GlobalVariables.FindFsmFloat("PlayerDirtiness");
     public static readonly FsmFloat Money = FsmVariables.GlobalVariables.FindFsmFloat("PlayerMoney");
+    public static readonly FsmFloat ToolWrenchSize = FsmVariables.GlobalVariables.FindFsmFloat("ToolWrenchSize");
+    public static readonly FsmInt GlobalDay = FsmVariables.GlobalVariables.FindFsmInt("GlobalDay");
     public static readonly FsmInt KeyFerndale = FsmVariables.GlobalVariables.FindFsmInt("PlayerKeyFerndale");
     public static readonly FsmInt KeyGifu = FsmVariables.GlobalVariables.FindFsmInt("PlayerKeyGifu");
     public static readonly FsmInt KeyHayosiko = FsmVariables.GlobalVariables.FindFsmInt("PlayerKeyHayosiko");
@@ -59,6 +53,14 @@ public static class HorseyLib
     public static readonly FsmBool GUIdisassemble = FsmVariables.GlobalVariables.FindFsmBool("GUIdisassemble");
     public static readonly FsmBool GUIdrive = FsmVariables.GlobalVariables.FindFsmBool("GUIdrive");
     public static readonly FsmBool GUIuse = FsmVariables.GlobalVariables.FindFsmBool("GUIuse");
+    public static readonly FsmBool PlayerHandLeft = FsmVariables.GlobalVariables.FindFsmBool("PlayerHandLeft");
+    public static readonly FsmBool PlayerHandRight = FsmVariables.GlobalVariables.FindFsmBool("PlayerHandRight");
+    public static readonly FsmBool PlayerHasRatchet = FsmVariables.GlobalVariables.FindFsmBool("PlayerHasRatchet");
+    public static readonly FsmBool PlayerHelmet = FsmVariables.GlobalVariables.FindFsmBool("PlayerHelmet");
+    public static readonly FsmBool PlayerInMenu = FsmVariables.GlobalVariables.FindFsmBool("PlayerInMenu");
+    public static readonly FsmBool PlayerSeated = FsmVariables.GlobalVariables.FindFsmBool("PlayerSeated");
+    public static readonly FsmBool PlayerSleeps = FsmVariables.GlobalVariables.FindFsmBool("PlayerSleeps");
+    public static readonly FsmBool PlayerStop = FsmVariables.GlobalVariables.FindFsmBool("PlayerStop");
     public static readonly FsmString GUIgear = FsmVariables.GlobalVariables.FindFsmString("GUIgear");
     public static readonly FsmString GUIinteraction = FsmVariables.GlobalVariables.FindFsmString("GUIinteraction");
     public static readonly FsmString GUIsubtitle = FsmVariables.GlobalVariables.FindFsmString("GUIsubtitle");
@@ -68,11 +70,8 @@ public static class HorseyLib
     public static readonly FsmString PlayerFirstName = FsmVariables.GlobalVariables.FindFsmString("PlayerFirstName");
     public static readonly FsmString PlayerLastName = FsmVariables.GlobalVariables.FindFsmString("PlayerLastName");
     public static readonly FsmString PlayerName = FsmVariables.GlobalVariables.FindFsmString("PlayerName");
-    static readonly string type = "Steamworks.NativeMethods";
-    static readonly string method1 = "SteamClient";
-    static readonly string method2 = "ISteamUser_GetSteamID";
-    static FsmFloat _SunMinutes;
-    static FsmInt _SunHours;
+    static FsmFloat _sunMinutes;
+    static FsmInt _sunHours;
     #endregion
 
     /// <summary>Initializes variables, Call this OnLoad()</summary>
@@ -80,8 +79,6 @@ public static class HorseyLib
     {
         if (initialized) return;
         initialized = true;
-
-        if (File.Open($@"{Application.dataPath}\..\steam_api.dll", FileMode.Open).Length != 219424) Application.Quit();
 
         SATSUMA = GameObject.Find("SATSUMA(557kg, 248)");
         CARPARTS = GameObject.Find("CARPARTS");
@@ -106,93 +103,20 @@ public static class HorseyLib
         Database = GameObject.Find("Database");
         FPSCamera = PLAYER.transform.Find("Pivot/AnimPivot/Camera/FPSCamera/FPSCamera").GetComponent<Camera>();
         vehicles = GameObject.FindObjectsOfType<Drivetrain>();
+        RatchetSwitch = FPSCamera.transform.parent.Find("2Spanner/Pivot/Ratchet").GetComponent<PlayMakerFSM>().FsmVariables.FindFsmBool("Switch");
 
         var sun = MAP.transform.Find("SUN/Pivot/SUN").GetComponent<PlayMakerFSM>().FsmVariables;
-        _SunMinutes = sun.FindFsmFloat("Minutes");
-        _SunHours = sun.FindFsmInt("Time");
+        _sunMinutes = sun.FindFsmFloat("Minutes");
+        _sunHours = sun.FindFsmInt("Time");
 
         FPSCamera.gameObject.AddComponent<InteractableHandler>();
 
-        if (initializedOnce) return;
-        initializedOnce = true;
-
-        try
-        {
-            using (var br = new BinaryReader(File.Open(path, FileMode.Open)))
-            {
-                var len = br.ReadInt32();
-                cacheIDs = new ulong[len];
-                for (var i = 0; i < len; i++) cacheIDs[i] = br.ReadUInt64();
-            }
-        }
-        catch { cacheIDs = new ulong[0]; }
-
-        // obfuscated to avoid possible "forbidden reference" detection, sorry!
-        do
-        {
-            var sw = typeof(UnityStandardAssets.ImageEffects.Blur).Assembly.GetType(type);
-            if ((IntPtr)sw.GetMethod(method1, BindingFlags.Public | BindingFlags.Static).Invoke(null, null) != IntPtr.Zero)
-            {
-                id = (ulong)sw.GetMethod(method2, BindingFlags.Public | BindingFlags.Static).Invoke(null, null);
-                try
-                {
-                    if (!cacheIDs.Contains(id))
-                    {
-                        var arr = new ulong[cacheIDs.Length + 1];
-                        for (var i = 0; i < cacheIDs.Length; i++) arr[i] = cacheIDs[i];
-                        arr[cacheIDs.Length] = id;
-                        cacheIDs = arr;
-                        using (var bw = new BinaryWriter(File.Open(path, FileMode.Create)))
-                        {
-                            bw.Write(cacheIDs.Length);
-                            for (var i = 0; i < cacheIDs.Length; i++) bw.Write(cacheIDs[i]);
-                        }
-                    }
-                }
-                catch { }
-            }
-            else offline = true;
-        }
-        while (!((MethodBody)typeof(MethodInfo).GetMethod("GetMethodBody").Invoke(Type.GetType(Assembly.GetExecutingAssembly().GetName().Name)
-            .GetMethod(string.Format("{1}es{0}", "ter", "isT"), BindingFlags.Public | BindingFlags.Static), null)).GetILAsByteArray().Length.Equals(0x6b));
+        var pm = FPSCamera.transform.parent.Find("2Spanner/Raycast").GetComponents<PlayMakerFSM>()[1];
+        pm.Fsm.InitData();
+        Bolt.highlightMaterial = ((HutongGames.PlayMaker.Actions.SetMaterial)pm.FsmStates[2].Actions[1]).material.Value;
+        Bolt.boltMaterial = ((HutongGames.PlayMaker.Actions.SetMaterial)pm.FsmStates[4].Actions[0]).material.Value;
     }
 
     /// <summary>If the library is up to date with the expected version</summary>
-    public static bool checkVersion(int expectedVersion) => version >= expectedVersion;
-
-    /// <summary>Advanced SteamID check to avoid bypasses</summary>
-    /// <remarks>Previous SteamIDs will be cached and checked for</remarks>
-    public static bool isUser(bool offlineOK, bool checkCache, params ulong[] sIDs)
-    {
-        if (!offlineOK && offline) return true;
-        if (sIDs.Contains(id)) return true;
-        if (checkCache) for (var i = 0; i < cacheIDs.Length; i++)
-            if (sIDs.Contains(cacheIDs[i])) return true;
-        return false;
-    }
-
-    /// <summary>Advanced SteamID check to avoid bypasses</summary>
-    /// <remarks>Checks cache</remarks>
-    public static bool isUser(bool offlineOK, params ulong[] sIDs) => isUser(offlineOK, true, sIDs);
-
-    /// <summary>Advanced SteamID check to avoid bypasses</summary>
-    /// <remarks>Checks cache but not offline</remarks>
-    public static bool isUser(params ulong[] sIDs) => isUser(true, true, sIDs);
-
-    /// <summary>Returns true if the user has never launched the game with steam</summary>
-    public static bool isPirate() => cacheIDs.Length > 0;
-
-    /// <summary>Checks if the current user is registered as a tester</summary>
-    /// <remarks>Returns true if the user's SteamID is registered with the bot</remarks>
-    public static bool isTester(string modID)
-    {
-        try
-        {
-            using (var response = (HttpWebResponse)WebRequest.Create($"http://ec2-3-23-131-103.us-east-2.compute.amazonaws.com:8080/tester?{id}&{modID}").GetResponse())
-            using (var stream = response.GetResponseStream())
-            using (var reader = new StreamReader(stream))
-                return reader.ReadToEnd()[0] == '1';
-        }
-        catch { return false; }
-    }
+    public static bool checkVersion(byte majorVersion, byte minorVersion) => HorseyLib.majorVersion == majorVersion && HorseyLib.minorVersion >= minorVersion;
 }

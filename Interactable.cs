@@ -2,15 +2,16 @@
 using System.Collections.Generic;
 
 /// <summary>A class to make interaction easier</summary>
+[RequireComponent(typeof(Collider))]
 public abstract class Interactable : MonoBehaviour
 {
-    [HideInInspector] public bool mouseIsOver;
     [HideInInspector] public bool mouseEntered;
     [HideInInspector] public bool lClicked;
     [HideInInspector] public bool rClicked;
     public LayerMask mask = -1;
 
-    void Start()
+    /// <summary>If you use a custom Awake() method call this within it</summary>
+    public void Awake()
     {
         if (!InteractableHandler.masks.Contains(mask)) InteractableHandler.masks.Add(mask);
     }
@@ -63,74 +64,77 @@ public abstract class Useable : Interactable
 class InteractableHandler : MonoBehaviour
 {
     static internal List<int> masks = new List<int>();
-    Interactable last;
-    Interactable obj;
-    GameObject menu;
+    Interactable[] last;
+    Interactable[] obj;
     RaycastHit hit;
+    Ray ray;
     int i;
 
-    void Start() => menu = GameObject.Find("Systems").transform.Find("OptionsMenu").gameObject;
+    void Start()
+    {
+        last = new Interactable[masks.Count];
+        obj = new Interactable[masks.Count];
+    }
 
     void Update()
     {
-        if (menu.activeInHierarchy) obj = null;
-        else
-        {
-            for (i = 0; i < masks.Count; i++)
-            {
-                Physics.Raycast(HorseyLib.FPSCamera.ScreenPointToRay(Input.mousePosition), out hit, 1, masks[i]);
-                obj = hit.collider ? hit.collider.GetComponent<Interactable>() : null;
-                if (obj && obj.mask == masks[i]) break;
-            }
-        }
+        ray = HorseyLib.FPSCamera.ScreenPointToRay(Input.mousePosition);
 
-        if (obj)
+        for (i = 0; i < obj.Length; i++)
         {
-            obj.mouseIsOver = true;
-            if (!obj.mouseEntered)
+            if (HorseyLib.PlayerInMenu.Value) obj[i] = null;
+            else
             {
-                obj.mouseEntered = true;
-                obj.mouseEnter();
+                Physics.Raycast(ray, out hit, 1, masks[i]);
+                obj[i] = hit.collider ? hit.collider.GetComponent<Interactable>() : null;
             }
-            obj.mouseOver();
-            if (cInput.GetKeyDown("Use")) obj.use();
-            if (Input.GetMouseButtonDown(0))
+
+            if (obj[i])
             {
-                obj.lClick();
-                obj.lClicked = true;
+                if (!obj[i].mouseEntered)
+                {
+                    obj[i].mouseEntered = true;
+                    obj[i].mouseEnter();
+                }
+                obj[i].mouseOver();
+                if (cInput.GetKeyDown("Use")) obj[i].use();
+                if (Input.GetMouseButtonDown(0))
+                {
+                    obj[i].lClick();
+                    obj[i].lClicked = true;
+                }
+                if (Input.GetMouseButton(0)) obj[i].lHold();
+                if (Input.GetMouseButtonUp(0))
+                {
+                    obj[i].lRelease();
+                    obj[i].lClicked = false;
+                }
+                if (Input.GetMouseButtonDown(1))
+                {
+                    obj[i].rClick();
+                    obj[i].rClicked = true;
+                }
+                if (Input.GetMouseButton(1)) obj[i].rHold();
+                if (Input.GetMouseButtonUp(1))
+                {
+                    obj[i].rRelease();
+                    obj[i].rClicked = false;
+                }
+                if (Input.mouseScrollDelta.y > 0) obj[i].scrollUp();
+                if (Input.mouseScrollDelta.y < 0) obj[i].scrollDown();
             }
-            if (Input.GetMouseButton(0)) obj.lHold();
-            if (Input.GetMouseButtonUp(0))
+
+            if (obj[i] != last[i] && last[i] != null)
             {
-                obj.lRelease();
-                obj.lClicked = false;
+                last[i].mouseExit();
+                last[i].mouseEntered = false;
+                last[i].lClicked = false;
+                last[i].rClicked = false;
+                if (last[i].lClicked) last[i].lRelease();
+                if (last[i].rClicked) last[i].rRelease();
             }
-            if (Input.GetMouseButtonDown(1))
-            {
-                obj.rClick();
-                obj.rClicked = true;
-            }
-            if (Input.GetMouseButton(1)) obj.rHold();
-            if (Input.GetMouseButtonUp(1))
-            {
-                obj.rRelease();
-                obj.rClicked = false;
-            }
-            if (Input.mouseScrollDelta.y > 0) obj.scrollUp();
-            if (Input.mouseScrollDelta.y < 0) obj.scrollDown();
+            last[i] = obj[i];
         }
-        
-        if (obj != last && last != null)
-        {
-            last.mouseExit();
-            last.mouseEntered = false;
-            last.lClicked = false;
-            last.rClicked = false;
-            if (last.lClicked) last.lRelease();
-            if (last.rClicked) last.rRelease();
-            obj = null;
-        }
-        last = obj;
     }
 
     void OnDestroy()

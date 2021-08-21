@@ -1,15 +1,12 @@
 <i>Please don't include these files with your mods! instead, link the [releases page](https://github.com/Horsey4/HorseyLib/releases) in required mods avoid clashes in versions</i>
 
 # HorseyLib
-### Contains all helper methods & properties
+<h2>Contains all helper methods & properties</h2>
 
 <br>
 
 Name | Type | Path
 -|-|-
-offline | bool | `Steamworks.NativeMethods.SteamClient() == null`
-id | ulong | `Steamworks.NativeMethods.ISteamUser_GetSteamID()`
-cacheIDs | ulong[] | Past SteamIDs
 SATSUMA | GameObject | `SATSUMA(557kg, 248)`
 CARPARTS | GameObject | `CARPARTS`
 PLAYER | GameObject | `PLAYER`
@@ -32,6 +29,9 @@ JAIL | GameObject | `JAIL`
 Database | GameObject | `Database`
 FPSCamera | Camera | `PLAYER/Pivot/AnimPivot/Camera/FPSCamera/FPSCamera`
 vehicles | Drivetrain[] | `Object.FindObjectsOfType<Drivetrain>()`
+RatchetSwitch | FsmBool | `PLAYER/Pivot/AnimPivot/Camera/FPSCamera/FPSCamera/2Spanner/Pivot/Ratchet: Switch`
+ClockMinutes | float | `MAP/SUN/Pivot/SUN: Minutes`
+ClockHours | int | `MAP/SUN/Pivot/SUN: Time`
 Thirst | FsmFloat | `Globals/PlayerThirst`
 Hunger | FsmFloat | `Globals/PlayerHunger`
 Stress | FsmFloat | `Globals/PlayerStress`
@@ -39,6 +39,8 @@ Urine | FsmFloat | `Globals/PlayerUrine`
 Fatigue | FsmFloat | `Globals/PlayerFatigue`
 Dirtiness | FsmFloat | `Globals/PlayerDirtiness`
 Money | FsmFloat | `Globals/PlayerMoney`
+ToolWrenchSize | FsmFloat | `Globals/ToolWrenchSize`
+GlobalDay | FsmInt | `Globals/GlobalDay`
 KeyFerndale | FsmInt | `Globals/PlayerKeyFerndale`
 KeyGifu | FsmInt | `Globals/PlayerKeyGifu`
 KeyHayosiko | FsmInt | `Globals/PlayerKeyHayosiko`
@@ -51,6 +53,14 @@ GUIbuy | FsmBool | `Globals/GUIbuy`
 GUIdisassemble | FsmBool | `Globals/GUIdisassemble`
 GUIdrive | FsmBool | `Globals/GUIdrive`
 GUIuse | FsmBool | `Globals/GUIuse`
+PlayerHandLeft | FsmBool | `Globals/PlayerHandLeft`
+PlayerHandRight | FsmBool | `Globals/PlayerHandRight`
+PlayerHasRatchet | FsmBool | `Globals/PlayerHasRatchet`
+PlayerHelmet | FsmBool | `Globals/PlayerHelmet`
+PlayerInMenu | FsmBool | `Globals/PlayerInMenu`
+PlayerSeated | FsmBool | `Globals/PlayerSeated`
+PlayerSleeps | FsmBool | `Globals/PlayerSleeps`
+PlayerStop | FsmBool | `Globals/PlayerStop`
 GUIgear | FsmString | `Globals/GUIgear`
 GUIinteraction | FsmString | `Globals/GUIinteraction`
 GUIsubtitle | FsmString | `Globals/GUIsubtitle`
@@ -60,29 +70,22 @@ CurrentVehicle | FsmString | `Globals/PlayerCurrentVehicle`
 PlayerFirstName | FsmString | `Globals/PlayerFirstName`
 PlayerLastName | FsmString | `Globals/PlayerLastName`
 PlayerName | FsmString | `Globals/PlayerName`
-ClockMinutes | float | `MAP/SUN/Pivot/SUN: Minutes`
-ClockHours | int | `MAP/SUN/Pivot/SUN: Time`
 
 <br>
 
 Name | Returns | Params | Summary
 -|-|-|-
 init | void | None | Initializes variables, Call this OnLoad()
-checkVersion | bool | `int expectedVersion` | If the library is up to date with the expected version
-isUser | bool | `bool offlineOK, checkCache, params ulong[] steamIDs` | Advanced steamID check to avoid bypasses
-isUser | bool | `bool offlineOK, params ulong[] steamIDs` | Checks cache
-isUser | bool | `params ulong[] steamIDs` | Checks cache but not offline
-isPirate | bool | None | Returns true if the user has never launched the game with steam	
-isTester | bool | `Mod mod` | Returns true if the user's SteamID is registered with the bot
+checkVersion | bool | `byte majorVersion, byte minorVersion` | If the library is up to date with the expected version
 
 <br>
 
 # Interactable
-### A class to make interaction easier
+<h2>A class to make interaction easier</h2>
+
+<i>All methods are only called at a max distance of 1 meter away just like the game does</i>
 
 <br>
-Add component to gameobject for code to be ran
-<i>All methods are only called at a max distance of 1 meter away just like the game does</i>
 
 Name | Called
 -|-
@@ -99,9 +102,9 @@ rClick | Called when the player presses the right mouse button moused over
 rHold | Called when the player holds the right mouse button moused over
 rRelease | Called when the player releases the right mouse button or mouses off
 
-<br>
+<h3>Example</h3>
 
-## Example
+<br>
 
 ```cs
 class InteractableExample : Interactable
@@ -114,19 +117,56 @@ class InteractableExample : Interactable
 }
 ```
 
-## Subclasses
-Name | Functionality
--|-
-Useable | Sets GUIuse to true when the mouse is over
+<br>
+
+# Attachment System
+<h2>Part</h2>
+
+<br>
+
+Name | Type | Summary
+-|-|-
+onAttach | attachDelegate | Called with the index the part is attached to
+onDetach | detachDelegate | Called with the index the part is detached from
+parents | Collider[] | A list of colliders the part can attach to
+bolts | Bolt[] | A list of bolts the part requires
+attached | bool | If the part is attached or not
+tightness | int | The total tightness of all bolts
+attach | void | Attaches to a collider programmatically
+
+Remarks:
+- Requires a rigidbody component
+- Collider parent is disabled when parented
+- Bolts are enabled and disabled when attached and detached
+- Colliders in the Unity Editor can only be referenced if under the same parent
+
+<h2>Bolt</h2>
+
+<br>
+
+Name | Type | Summary
+-|-|-
+onTighten | tightenDelagate | Called with the tightness when the bolt is tightened
+onLoosen | loosenDelegate | Called with the tightness when the bolt is loosened
+size | enum | The size of the bolt
+stepRotation | Vector3 | How much the bolt is turned each step
+stepPosition | Vector3 | How much the bolt is moved each step
+tightness | int | The current tightness of the bolt
+steps | int | The total steps the bolt has
+canUseRatchet | bool | If the ratched works for this bolt or not
+
+Remarks:
+- The bolt is assumed to be fully in when set up and backed out to the set tightness
+- The bolt material is applied automatically and isn't needed in the assets
 
 <br>
 
 # SaveBytes
-### Saves classes with BinaryFormatters
+<h2>Saves classes with BinaryFormatters</h2>
 
 <br>
 
-Can save any class marked as `System.Serializable`, or any of the exceptions below
+Can save any class marked as `System.Serializable`, or any surrogates added to the list. The default list contains:
 - UnityEngine.Color
 - UnityEngine.Quaternion
 - UnityEngine.Vector2
@@ -141,6 +181,7 @@ save | void | `string saveFile, params object[] data` | Save a list of data to t
 save | void | `string saveFile, object data` | Save data to the save file
 load | object[] | `string saveFile, object[] ifFail` | Load and return a list of data from the save file
 load\<T> | T | `string saveFile, T ifFail` | Load and return data from the save file
+addSurrogate | void | `Type type, ISerializationSurrogate surrogate` | Adds a serialization surrogate to the list
 
 <br>
 

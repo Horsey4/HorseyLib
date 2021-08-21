@@ -7,11 +7,11 @@ using System.Runtime.Serialization.Formatters.Binary;
 /// <summary>Saves classes with BinaryFormatters</summary>
 public static class SaveBytes
 {
-    static BinaryFormatter bf = getBinaryFormatter();
+    static readonly StreamingContext sc = new StreamingContext(StreamingContextStates.All);
+    static readonly BinaryFormatter bf = getBinaryFormatter();
 
     static BinaryFormatter getBinaryFormatter()
     {
-        var sc = new StreamingContext(StreamingContextStates.All);
         var bf = new BinaryFormatter();
         var ss = new SurrogateSelector();
 
@@ -24,6 +24,10 @@ public static class SaveBytes
         bf.SurrogateSelector = ss;
         return bf;
     }
+
+    /// <summary>Adds a serialization surrogate to the list</summary>
+    /// <remarks>Ensure you call this before loading the save</remarks>
+    public static void addSurrogate(Type type, ISerializationSurrogate surrogate) => ((SurrogateSelector)bf.SurrogateSelector).AddSurrogate(type, sc, surrogate);
 
     /// <summary>Save a list of data to the save file</summary>
     public static void save(string saveFile, params object[] data) => save(saveFile, (object)data);
