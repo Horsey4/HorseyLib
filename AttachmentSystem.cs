@@ -47,7 +47,6 @@ public class Part : Interactable
             if (Input.GetMouseButtonDown(0))
             {
                 HorseyLib.GUIassemble.Value = false;
-                attached = true;
                 StartCoroutine(waitAttach(cur));
             }
             else HorseyLib.GUIassemble.Value = true;
@@ -62,13 +61,7 @@ public class Part : Interactable
             if (Input.GetMouseButtonDown(1))
             {
                 HorseyLib.GUIdisassemble.Value = false;
-                attached = false;
-                gameObject.layer = 19;
-                rb.isKinematic = false;
-                MasterAudio.PlaySound3DAtTransformAndForget("CarBuilding", transform, variationName: "disassemble");
-                transform.parent.GetComponent<Collider>().enabled = true;
-                transform.SetParent(null);
-                activateBolts(false);
+                detach();
 
                 onDetach?.Invoke(index);
             }
@@ -118,6 +111,7 @@ public class Part : Interactable
     {
         if (!rb) rb = GetComponent<Rigidbody>();
 
+        attached = true;
         gameObject.layer = 16;
         rb.isKinematic = true;
         transform.SetParent(col.transform);
@@ -125,6 +119,19 @@ public class Part : Interactable
         transform.localEulerAngles = Vector3.zero;
         col.enabled = false;
         activateBolts(true);
+    }
+
+    /// <summary>Detaches from any trigger programatically</summary>
+    /// <remarks>Does not invoke events or play a sound</remarks>
+    public void detach()
+    {
+        attached = false;
+        gameObject.layer = 19;
+        rb.isKinematic = false;
+        transform.SetParent(null);
+        var col = transform?.parent.GetComponent<Collider>();
+        if (col) col.enabled = true;
+        activateBolts(false);
     }
 }
 

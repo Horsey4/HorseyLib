@@ -6,7 +6,7 @@ public static class HorseyLib
     #region variables
     internal static bool initialized;
     public const byte majorVersion = 2;
-    public const byte minorVersion = 1;
+    public const byte minorVersion = 2;
     public static GameObject SATSUMA { get; private set; }
     public static GameObject CARPARTS { get; private set; }
     public static GameObject PLAYER { get; private set; }
