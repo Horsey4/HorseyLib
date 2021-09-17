@@ -52,7 +52,7 @@ public class Part : Interactable
             }
             else HorseyLib.GUIassemble.Value = true;
         }
-        pParent = transform.parent;
+        pParent = transform.parent?.name == "ItemPivot";
     }
 
     public override void mouseOver()
