@@ -139,6 +139,7 @@ Remarks:
 - Collider parent is disabled when parented
 - Bolts are enabled and disabled when attached and detached
 - Colliders in the Unity Editor can only be referenced if under the same parent
+- Both delegates have an `int index` parameter
 
 <h2>Bolt</h2>
 
@@ -153,11 +154,12 @@ stepRotation | Vector3 | How much the bolt is turned each step
 stepPosition | Vector3 | How much the bolt is moved each step
 tightness | int | The current tightness of the bolt
 steps | int | The total steps the bolt has
-canUseRatchet | bool | If the ratched works for this bolt or not
+canUseRatchet | bool | If the ratchet works for this bolt or not
 
 Remarks:
 - The bolt is assumed to be fully in when set up and backed out to the set tightness
 - The bolt material is applied automatically and isn't needed in the assets
+- Both delegates have an `int tightness` parameter
 
 <br>
 
