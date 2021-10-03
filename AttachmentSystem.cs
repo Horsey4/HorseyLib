@@ -28,6 +28,12 @@ public class Part : Interactable
         }
     }
 
+    new void Awake()
+    {
+        mask = 65536;
+        base.Awake();
+    }
+
     void Start()
     {
         rb = GetComponent<Rigidbody>();
@@ -61,6 +67,7 @@ public class Part : Interactable
             if (Input.GetMouseButtonDown(1))
             {
                 HorseyLib.GUIdisassemble.Value = false;
+                MasterAudio.PlaySound3DAtTransformAndForget("CarBuilding", transform, variationName: "disassemble");
                 detach();
 
                 onDetach?.Invoke(index);
@@ -128,8 +135,8 @@ public class Part : Interactable
         attached = false;
         gameObject.layer = 19;
         rb.isKinematic = false;
-        transform.SetParent(null);
         var col = transform?.parent.GetComponent<Collider>();
+        transform.SetParent(null);
         if (col) col.enabled = true;
         activateBolts(false);
     }
@@ -172,6 +179,12 @@ public class Bolt : Interactable
     Renderer renderer;
     bool scrollable;
     bool onCooldown;
+
+    new void Awake()
+    {
+        mask = 4096;
+        base.Awake();
+    }
 
     void Start()
     {

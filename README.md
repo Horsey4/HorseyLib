@@ -140,6 +140,7 @@ Remarks:
 - Bolts are enabled and disabled when attached and detached
 - Colliders in the Unity Editor can only be referenced if under the same parent
 - Both delegates have an `int index` parameter
+- Layermask variable is automatically set to 65536 (Parts only)
 
 <h2>Bolt</h2>
 
@@ -160,6 +161,7 @@ Remarks:
 - The bolt is assumed to be fully in when set up and backed out to the set tightness
 - The bolt material is applied automatically and isn't needed in the assets
 - Both delegates have an `int tightness` parameter
+- Layermask variable is automatically set to 4096 (Bolts only)
 
 <br>
 
