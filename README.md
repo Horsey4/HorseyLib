@@ -1,5 +1,7 @@
 <i>Please don't include these files with your mods! instead, link the [releases page](https://github.com/Horsey4/HorseyLib/releases) in required mods avoid clashes in versions</i>
 
+<h1>This library is no longer supported; please consider using something else</h1>
+
 # HorseyLib
 <h2>Contains all helper methods & properties</h2>
 
